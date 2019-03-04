@@ -29,6 +29,8 @@ class SPFCheck
     private $redirect;
     private $voidLookup = 0;
 
+    private $includedDomains = [];
+
     protected static function getValidResults()
     {
         return [self::RESULT_PASS, self::RESULT_FAIL, self::RESULT_SOFTFAIL, self::RESULT_NEUTRAL];
@@ -65,6 +67,19 @@ class SPFCheck
     public function isIPAllowed($ipAddress, $domain)
     {
         return $this->doIsIPAllowed($ipAddress, $domain, true);
+    }
+
+    /**
+     * @param string $sourceDomain
+     * @param string $domain
+     *
+     * @return boolean
+     */
+    public function isDomainIncluded($sourceDomain, $domain) : bool {
+
+        $this->includedDomains = [];
+        $this->doIsIPAllowed($sourceDomain, $domain, true);
+        return in_array($sourceDomain, $this->includedDomains);
     }
 
     protected function doIsIPAllowed($ipAddress, $domain, $resetRequestCount)
@@ -303,6 +318,7 @@ class SPFCheck
 
             case self::MECHANISM_INCLUDE:
                 $this->DNSRecordGetter->countRequest();
+                array_push($this->includedDomains, $operand);
                 $includeResult = $this->doCheck($ipAddress, $operand);
                 if (in_array($includeResult, array(self::RESULT_PASS, self::RESULT_DEFINITIVE_PERMERROR, self::RESULT_PERMERROR, self::RESULT_TEMPERROR))) {
                     return $includeResult;
